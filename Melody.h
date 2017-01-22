@@ -9,6 +9,14 @@
 
 using namespace std;
 
+bool byTime(const Note & eOne, const Note & eTwo) {
+	return eOne.start < eTwo.start;
+}
+
+bool byPitch(const Note & eOne, const Note & eTwo) {
+	return eOne.pitch < eTwo.pitch;
+}
+
 vector<double> scores(vector<vector<double>> inputs, vector<double> maxes) {
 	vector<double> outputs;
 	for (vector<double> inps : inputs) {
@@ -16,7 +24,9 @@ vector<double> scores(vector<vector<double>> inputs, vector<double> maxes) {
 	}
 	return outputs;
 }
-
+//vector <vector<pair<pair<int, int>, int>> changeKey(vector < vector<pair<pair<int, int>, int>>original, int change) {
+//	for (int i = 0; i < )
+//}
 pair<vector<vector<Note>>, int> seperate(string filename) {
 	ifstream f(filename);
 
@@ -44,6 +54,8 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 	int HIGH = LOW + RANGE;
 	bool multiple = true;
 	int head;
+	int highest = 0;
+	int lowest = 10000;
 	stringstream(data[0][5]) >> head;
 	int bpm = 0;
 	int tempo = 0;
@@ -74,12 +86,14 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 		//head = clock time per quarter note
 		//conversion = seconds per clock time
 		else if (data[i][2] == "End_track") {
-			outputs.push_back(output);
-			note_rate.push_back(second_count);
-			if (second_count != 0)
-				mean.push_back(sum / second_count);
-			else
-				mean.push_back(-1);
+			if(output.size()!=0){
+				outputs.push_back(output);
+				note_rate.push_back(second_count);
+				if (second_count != 0)
+					mean.push_back(sum / second_count);
+				else
+					mean.push_back(-1);
+				}
 
 			sum = 0;
 			count = 0;
@@ -99,6 +113,8 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 					int note_val;
 					stringstream(data[i][4]) >> note_val;
 					sum += note_val;
+					if (note_val > highest) highest = note_val;
+					if (note_val < lowest) lowest = note_val;
 
 					output.push_back(make_pair(make_pair((int)(start_time * 256 / head), (int)(end_time * 256 / head)), note_val));
 
@@ -113,6 +129,10 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 			}
 		}
 	}
+//	int range = highest - lowest;
+//	if (range > RANGE) {
+//		if ()
+//	}
 	vector<vector<double>> evaluations;
 	for (int i = 0; i < outputs.size(); i++) {
 		vector<double> evaluation;
@@ -167,6 +187,11 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 	full_out.reserve(harmony.size() + melody.size());
 	full_out.insert(full_out.end(), melody.begin(), melody.end());
 	full_out.insert(full_out.end(), harmony.begin(), harmony.end());
+	cout << "Test";
+	for (pair<pair<int, int>, int> val : full_out) {
+		cout << "\n" << val.first.first << ", " << val.first.second << ", " << val.second;
+	}
+	cout << "\n len: " << full_out.size();
 
 	vector<Note> full_song;
 	vector<Note> melody_song;
@@ -178,16 +203,24 @@ pair<vector<vector<Note>>, int> seperate(string filename) {
 		full_song.push_back(Note(full_out[i].first.first, full_out[i].first.second, full_out[i].second));
 	}
 
-	for (int i = 0; i < melody_song.size(); i++) {
+	for (int i = 0; i < melody.size(); i++) {
 		melody_song.push_back(Note(melody[i].first.first, melody[i].first.second, melody[i].second));
 	}
 
-	for (int i = 0; i < harmony_song.size(); i++) {
+	for (int i = 0; i < harmony.size(); i++) {
 		harmony_song.push_back(Note(harmony[i].first.first, harmony[i].first.second, harmony[i].second));
 	}
 
-	final_export.push_back(full_song); final_export.push_back(melody_song); final_export.push_back(harmony_song);
+	sort(full_song.begin(), full_song.end(), byPitch);
 
+	while ((full_song[full_song.size() - 1].pitch - full_song[0].pitch) > 49) {
+		full_song.erase(full_song.begin());
+	}
+
+	sort(full_song.begin(), full_song.end(), byTime);
+
+	final_export.push_back(full_song); final_export.push_back(melody_song); final_export.push_back(harmony_song);
+	
 	return make_pair(final_export, bpm);
 
 
